@@ -1,5 +1,10 @@
 provider "aws" {
-  region = "eu-central-1" # Frankfurt
+  region = var.region # Frankfurt
+}
+
+variable "region" {
+  type = string
+  default = "eu-central-1"
 }
 
 #########################
@@ -12,7 +17,7 @@ data "archive_file" "lambda_zip" {
 }
 
 resource "aws_lambda_function" "example_lambda" {
-  filename      = data.archive_file.lambda_zip.output_path
+  filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 
   function_name = "example-lambda"
@@ -35,7 +40,6 @@ resource "aws_iam_role" "lambda_role" {
     }]
   })
 }
-
 
 resource "aws_iam_role_policy" "lambda_policy" {
   name = "lambda_policy"
@@ -79,12 +83,12 @@ resource "aws_api_gateway_method" "api_method" {
 }
 
 resource "aws_api_gateway_integration" "lambda_integration" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.api_resource.id
-  http_method = aws_api_gateway_method.api_method.http_method
-  type        = "AWS_PROXY"
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.api_resource.id
+  http_method             = aws_api_gateway_method.api_method.http_method
+  type                    = "AWS_PROXY"
   integration_http_method = "POST"
-  uri         = aws_lambda_function.example_lambda.invoke_arn
+  uri                     = aws_lambda_function.example_lambda.invoke_arn
 }
 
 resource "aws_lambda_permission" "apigw" {
@@ -95,6 +99,14 @@ resource "aws_lambda_permission" "apigw" {
   source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 }
 
+resource "aws_api_gateway_deployment" "api_deployment" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  stage_name  = "prod"
+  depends_on = [
+    aws_api_gateway_integration.lambda_integration,
+  ]
+}
+
 output "api_endpoint" {
-  value = "${aws_api_gateway_rest_api.api.execution_arn}/lambda"
+  value = "https://${aws_api_gateway_rest_api.api.id}.execute-api.${var.region}.amazonaws.com/${aws_api_gateway_deployment.api_deployment.stage_name}/lambda"
 }
