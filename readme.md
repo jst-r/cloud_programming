@@ -1,0 +1,1 @@
+Make sure to have AWS credentials available on your system. I use aws CLI for that.
