@@ -65,23 +65,30 @@ resource "aws_iam_role_policy" "lambda_policy" {
 # S3
 
 # Create an S3 bucket
-resource "aws_s3_bucket" "static_website" {
+resource "aws_s3_bucket" "static" {
   bucket = "jstre-iu-cloud-programming-bucket"
-
-  website {
-    index_document = "index.html"
-  }
 }
 
-resource "aws_s3_bucket_acl" ""
+resource "aws_s3_bucket_acl" "s3_acl" {
+  bucket = aws_s3_bucket.static.id
+  acl = "public-read"
+}
 
 # Upload an index.html file to the S3 bucket
 resource "aws_s3_object" "index" {
-  bucket = aws_s3_bucket.static_website.id
+  bucket = aws_s3_bucket.static.id
   key    = "index.html"
   source = "static/index.html"
   etag   = filemd5("static/index.html")
   acl    = "public-read"
+}
+
+resource "aws_s3_bucket_website_configuration" "s3_website" {
+  bucket = aws_s3_bucket.static.id
+
+  index_document {
+    suffix = "index.html"
+  }
 }
 
 #########################
@@ -100,18 +107,18 @@ resource "aws_api_gateway_resource" "root" {
 }
 
 resource "aws_api_gateway_method" "root_method" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.root.id
-  http_method = "GET"
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.root.id
+  http_method   = "GET"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "root_integration" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.root.id
-  http_method = aws_api_gateway_method.root_method.http_method
-  type        = "HTTP"
-  uri         = "http://${aws_s3_bucket.static_website.bucket}.s3-website.${var.region}.amazonaws.com"
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.root.id
+  http_method             = aws_api_gateway_method.root_method.http_method
+  type                    = "HTTP"
+  uri                     = aws_s3_bucket_website_configuration.s3_website.website_domain
   integration_http_method = "GET"
 }
 
@@ -123,18 +130,18 @@ resource "aws_api_gateway_resource" "api_increment_counter" {
 }
 
 resource "aws_api_gateway_method" "post_method" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.api_increment_counter.id
-  http_method = "POST"
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.api_increment_counter.id
+  http_method   = "POST"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "post_integration" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.api_increment_counter.id
-  http_method = aws_api_gateway_method.post_method.http_method
-  type        = "AWS_PROXY"
-  uri         = aws_lambda_function.example_lambda.invoke_arn
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.api_increment_counter.id
+  http_method             = aws_api_gateway_method.post_method.http_method
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.example_lambda.invoke_arn
   integration_http_method = "POST"
 }
 
@@ -144,12 +151,12 @@ resource "aws_lambda_permission" "api_gateway" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.example_lambda.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "arn:aws:execute-api:${var.region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.api.id}/*/POST/api/increment_counter"
+  source_arn    = "arn:aws:execute-api:${var.region}:${aws_api_gateway_rest_api.api.execution_arn}:${aws_api_gateway_rest_api.api.id}/*/POST/api/increment_counter"
 }
 
 #########################
 # Outputs
 
-output "api_endpoint" {
-  value = aws_api_gateway_deployment.example_api.invoke_url
-}
+# output "api_endpoint" {
+#   value = aws_api_gateway_rest_api.api.
+# }
