@@ -57,7 +57,7 @@ resource "aws_apigatewayv2_api" "lambda" {
 resource "aws_apigatewayv2_stage" "lambda" {
   api_id = aws_apigatewayv2_api.lambda.id
 
-  name        = "serverless_lambda_stage"
+  name        = "$default"
   auto_deploy = true
 }
 
@@ -105,28 +105,3 @@ output "base_url" {
 
   value = aws_apigatewayv2_stage.lambda.invoke_url
 }
-
-
-#########################
-# Outputs
-
-# output "api_endpoint" {
-#   value = aws_api_gateway_rest_api.api.
-# }
-
-
-# resource "aws_api_gateway_method" "root_method" {
-#   rest_api_id   = aws_api_gateway_rest_api.api.id
-#   resource_id   = aws_api_gateway_resource.root.id
-#   http_method   = "GET"
-#   authorization = "NONE"
-# }
-
-# resource "aws_api_gateway_integration" "root_integration" {
-#   rest_api_id             = aws_api_gateway_rest_api.api.id
-#   resource_id             = aws_api_gateway_resource.root.id
-#   http_method             = aws_api_gateway_method.root_method.http_method
-#   type                    = "HTTP"
-#   uri                     = aws_s3_bucket_website_configuration.s3_website.website_domain
-#   integration_http_method = "GET"
-# }

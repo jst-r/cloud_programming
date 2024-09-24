@@ -1,18 +1,29 @@
 resource "aws_s3_bucket" "static" {
   bucket = "jstre-iu-cloud-programming-bucket"
 }
-resource "aws_s3_object" "terraform_index" {
+
+resource "aws_s3_object" "static_files" {
   bucket       = aws_s3_bucket.static.id
-  key          = "index.html"
-  source       = "static/index.html"
+
+  for_each = fileset("static", "*")
+
+  key          = each.value
+  source       = "static/${each.value}"
   content_type = "text/html"
-  etag         = filemd5("static/index.html")
+  etag         = filemd5("static/${each.value}")
 }
+
 
 resource "aws_s3_bucket_website_configuration" "s3_website" {
   bucket = aws_s3_bucket.static.id
+
+  depends_on = [ aws_s3_object.static_files ]
   index_document {
     suffix = "index.html"
+  }
+
+  error_document {
+    key = "error.html"
   }
 }
 
