@@ -54,27 +54,13 @@ resource "aws_apigatewayv2_api" "lambda" {
   protocol_type = "HTTP"
 }
 
-resource "aws_apigatewayv2_stage" "lambda" {
+resource "aws_apigatewayv2_stage" "default" {
   api_id = aws_apigatewayv2_api.lambda.id
 
-  name        = "$default"
+  name        = "v1"
   auto_deploy = true
 }
 
-resource "aws_apigatewayv2_integration" "default" {
-  api_id = aws_apigatewayv2_api.lambda.id
-
-  integration_uri    = "http://${aws_s3_bucket.static.bucket}.s3-website.${aws_s3_bucket.static.region}.amazonaws.com"
-  integration_type   = "HTTP_PROXY"
-  integration_method = "GET"
-}
-
-resource "aws_apigatewayv2_route" "default" {
-  api_id = aws_apigatewayv2_api.lambda.id
-
-  route_key = "$default"
-  target    = "integrations/${aws_apigatewayv2_integration.default.id}"
-}
 
 resource "aws_apigatewayv2_integration" "hello_world" {
   api_id = aws_apigatewayv2_api.lambda.id
@@ -87,7 +73,7 @@ resource "aws_apigatewayv2_integration" "hello_world" {
 resource "aws_apigatewayv2_route" "hello_world" {
   api_id = aws_apigatewayv2_api.lambda.id
 
-  route_key = "GET /api/hello"
+  route_key = "GET /hello"
   target    = "integrations/${aws_apigatewayv2_integration.hello_world.id}"
 }
 
@@ -103,5 +89,5 @@ resource "aws_lambda_permission" "api_gw" {
 output "base_url" {
   description = "Base URL for API Gateway stage."
 
-  value = aws_apigatewayv2_stage.lambda.invoke_url
+  value = aws_apigatewayv2_stage.default.invoke_url
 }

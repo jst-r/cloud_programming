@@ -5,13 +5,27 @@ locals {
 
 resource "aws_cloudfront_distribution" "cloudfront" {
   origin {
-    domain_name              = "${aws_s3_bucket.static.bucket}.s3-website.${aws_s3_bucket.static.region}.amazonaws.com"
+    domain_name              = "${aws_s3_bucket.static.bucket}.s3-website.${var.region}.amazonaws.com"
     origin_id                = local.s3_origin_id
+
     custom_origin_config {
       origin_protocol_policy = "http-only"
       http_port = 80
       https_port = 443 # afaik doesn't do anything
-      origin_ssl_protocols = [ "SSLv3" ]
+      origin_ssl_protocols = [ "TLSv1.2" ]
+    }
+  }
+
+  origin {
+    domain_name = "${aws_apigatewayv2_api.lambda.id}.execute-api.${var.region}.amazonaws.com"
+    # origin_path = "/${aws_apigatewayv2_stage.default.name}" # $default stage would probably break it
+    origin_id = local.api_origin_id
+
+    custom_origin_config {
+        origin_protocol_policy = "https-only"
+        origin_ssl_protocols = ["TLSv1.2"]
+        http_port = 80
+        https_port = 443
     }
   }
 
@@ -35,30 +49,29 @@ resource "aws_cloudfront_distribution" "cloudfront" {
     min_ttl                = 0
     default_ttl            = 3600
     max_ttl                = 86400
+
+    compress = true
   }
 
-  # Cache behavior with precedence 0
-#   ordered_cache_behavior {
-#     path_pattern     = "/content/immutable/*"
-#     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
-#     cached_methods   = ["GET", "HEAD", "OPTIONS"]
-#     target_origin_id = local.s3_origin_id
+  ordered_cache_behavior {
+    path_pattern     = "/api*"
+    allowed_methods  = ["HEAD", "DELETE", "POST", "GET", "OPTIONS", "PUT", "PATCH"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.api_origin_id
 
-#     forwarded_values {
-#       query_string = false
-#       headers      = ["Origin"]
+    forwarded_values {
+      query_string = true
 
-#       cookies {
-#         forward = "none"
-#       }
-#     }
+      cookies {
+        forward = "none"
+      }
+    }
+    viewer_protocol_policy = "redirect-to-https"
 
-#     min_ttl                = 0
-#     default_ttl            = 86400
-#     max_ttl                = 31536000
-#     compress               = true
-#     viewer_protocol_policy = "redirect-to-https"
-#   }
+    min_ttl                = 0
+    default_ttl            = 0
+    max_ttl                = 86400
+  }
 
   restrictions {
     geo_restriction {
