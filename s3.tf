@@ -3,7 +3,7 @@ resource "aws_s3_bucket" "static" {
 }
 
 resource "aws_s3_object" "static_files" {
-  bucket       = aws_s3_bucket.static.id
+  bucket = aws_s3_bucket.static.id
 
   for_each = fileset("static", "*")
 
@@ -17,7 +17,7 @@ resource "aws_s3_object" "static_files" {
 resource "aws_s3_bucket_website_configuration" "s3_website" {
   bucket = aws_s3_bucket.static.id
 
-  depends_on = [ aws_s3_object.static_files ]
+  depends_on = [aws_s3_object.static_files]
   index_document {
     suffix = "index.html"
   }
@@ -49,8 +49,4 @@ resource "aws_s3_bucket_policy" "open_access" {
     ]
   })
   depends_on = [aws_s3_bucket_public_access_block.static]
-}
-
-output "website_url" {
-  value = "http://${aws_s3_bucket.static.bucket}.s3-website.${aws_s3_bucket.static.region}.amazonaws.com"
 }

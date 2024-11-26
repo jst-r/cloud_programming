@@ -1,36 +1,36 @@
 locals {
-  s3_origin_id = "s3_origin"
+  s3_origin_id  = "s3_origin"
   api_origin_id = "api_origin"
 }
 
 resource "aws_cloudfront_distribution" "cloudfront" {
   origin {
-    domain_name              = "${aws_s3_bucket.static.bucket}.s3-website.${var.region}.amazonaws.com"
-    origin_id                = local.s3_origin_id
+    domain_name = "${aws_s3_bucket.static.bucket}.s3-website.${var.region}.amazonaws.com"
+    origin_id   = local.s3_origin_id
 
     custom_origin_config {
       origin_protocol_policy = "http-only"
-      http_port = 80
-      https_port = 443 # afaik doesn't do anything
-      origin_ssl_protocols = [ "TLSv1.2" ]
+      http_port              = 80
+      https_port             = 443 # afaik doesn't do anything
+      origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
 
   origin {
     domain_name = "${aws_apigatewayv2_api.lambda.id}.execute-api.${var.region}.amazonaws.com"
     origin_path = "/${aws_apigatewayv2_stage.default.name}" # $default stage would probably break it
-    origin_id = local.api_origin_id
+    origin_id   = local.api_origin_id
 
     custom_origin_config {
-        origin_protocol_policy = "https-only"
-        origin_ssl_protocols = ["TLSv1.2"]
-        http_port = 80
-        https_port = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+      http_port              = 80
+      https_port             = 443
     }
   }
 
-  enabled             = true
-  is_ipv6_enabled     = true
+  enabled         = true
+  is_ipv6_enabled = true
 
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD"]
@@ -63,7 +63,7 @@ resource "aws_cloudfront_distribution" "cloudfront" {
     forwarded_values {
       query_string = false
 
-      headers      = ["Origin"]
+      headers = ["Origin"]
 
       cookies {
         forward = "none"
@@ -85,8 +85,4 @@ resource "aws_cloudfront_distribution" "cloudfront" {
   viewer_certificate {
     cloudfront_default_certificate = true
   }
-}
-
-output "cloudfront_endpoint" {
-    value = aws_cloudfront_distribution.cloudfront.domain_name
 }
