@@ -12,18 +12,18 @@
     <h1>This is the index page!</h1>
     <a href="/another_page.html">Go to another page</a>
     <button id="button" style="display: block; margin: 1rem;">
-        Hit alambda</button>
+        Hit the lambda</button>
     <div id="response">Lambda response goes here</div>
 </body>
 
 <script defer>
     const button = document.getElementById("button");
-    const response = document.getElementById("response");
+    const display = document.getElementById("response");
     button.onclick = async () => {
-        response.innerHTML = "Waiting for a response";
+        display.innerHTML = "Waiting for a response";
         const res = await fetch("/api/hello");
-        const body = (await res.body()).json();
-        response.innerHTML = JSON.stringify(body, undefined, 4);
+        const body = await res.json();
+        display.innerHTML = JSON.stringify(body, undefined, 4);
     }
 </script>
 
